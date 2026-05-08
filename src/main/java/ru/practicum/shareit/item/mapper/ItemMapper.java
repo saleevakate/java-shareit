@@ -19,7 +19,6 @@ public class ItemMapper {
     public static Item toItem(ItemDto itemDto) {
         if (itemDto == null) return null;
         Item item = new Item();
-        item.setId(itemDto.getId());
         item.setName(itemDto.getName());
         item.setDescription(itemDto.getDescription());
         item.setAvailable(itemDto.getAvailable());

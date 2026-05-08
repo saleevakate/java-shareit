@@ -2,12 +2,13 @@ package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.ItemStorage;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.storage.UserStrorage;
+import ru.practicum.shareit.user.storage.UserStorage;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -15,28 +16,28 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
-    private final ItemStorage itemRepository;
-    private final UserStrorage userRepository;
+    private final ItemStorage itemStorage;
+    private final UserStorage userStorage;
 
     @Override
     public ItemDto create(ItemDto itemDto, int userId) {
-        User owner = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        User owner = userStorage.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
         Item item = ItemMapper.toItem(itemDto);
         item.setOwner(owner);
 
-        item = itemRepository.save(item);
+        item = itemStorage.save(item);
         return ItemMapper.toItemDto(item);
     }
 
     @Override
     public ItemDto update(int itemId, ItemDto itemDto, int userId) {
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Вещь не найдена"));
+        Item item = itemStorage.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Вещь не найдена"));
 
         if (item.getOwner().getId() != userId) {
-            throw new RuntimeException("Редактировать вещь может только владелец");
+            throw new NotFoundException("Редактировать вещь может только владелец");
         }
 
         if (itemDto.getName() != null) {
@@ -49,23 +50,23 @@ public class ItemServiceImpl implements ItemService {
             item.setAvailable(itemDto.getAvailable());
         }
 
-        item = itemRepository.update(item);
+        item = itemStorage.update(item);
         return ItemMapper.toItemDto(item);
     }
 
     @Override
     public ItemDto getById(int itemId, int userId) {
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Вещь не найдена"));
+        Item item = itemStorage.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Вещь не найдена"));
         return ItemMapper.toItemDto(item);
     }
 
     @Override
     public List<ItemDto> getByOwner(int userId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        userStorage.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
-        return itemRepository.findAllByOwnerId(userId).stream()
+        return itemStorage.findAllByOwnerId(userId).stream()
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
     }
@@ -77,7 +78,7 @@ public class ItemServiceImpl implements ItemService {
         }
 
         String lowerText = text.toLowerCase();
-        return itemRepository.findAll().stream()
+        return itemStorage.findAll().stream()
                 .filter(Item::isAvailable)
                 .filter(item -> item.getName().toLowerCase().contains(lowerText) ||
                         item.getDescription().toLowerCase().contains(lowerText))
