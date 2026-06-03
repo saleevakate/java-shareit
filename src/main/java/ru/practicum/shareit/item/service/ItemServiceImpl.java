@@ -1,39 +1,44 @@
 package ru.practicum.shareit.item.service;
 
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.storage.ItemStorage;
+import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.storage.UserStorage;
+import ru.practicum.shareit.user.storage.UserRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
-    private final ItemStorage itemStorage;
-    private final UserStorage userStorage;
+    private final ItemRepository itemRepository;
+    private final UserRepository userRepository;
 
     @Override
+    @Transactional
     public ItemDto create(ItemDto itemDto, int userId) {
-        User owner = userStorage.findById(userId)
+        User owner = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
         Item item = ItemMapper.toItem(itemDto);
         item.setOwner(owner);
 
-        item = itemStorage.save(item);
+        item = itemRepository.save(item);
         return ItemMapper.toItemDto(item);
     }
 
     @Override
+    @Transactional
     public ItemDto update(int itemId, ItemDto itemDto, int userId) {
-        Item item = itemStorage.findById(itemId)
+        Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь не найдена"));
 
         if (item.getOwner().getId() != userId) {
@@ -50,23 +55,23 @@ public class ItemServiceImpl implements ItemService {
             item.setAvailable(itemDto.getAvailable());
         }
 
-        item = itemStorage.update(item);
+        item = itemRepository.save(item);
         return ItemMapper.toItemDto(item);
     }
 
     @Override
     public ItemDto getById(int itemId, int userId) {
-        Item item = itemStorage.findById(itemId)
+        Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь не найдена"));
         return ItemMapper.toItemDto(item);
     }
 
     @Override
     public List<ItemDto> getByOwner(int userId) {
-        userStorage.findById(userId)
+        userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
-        return itemStorage.findAllByOwnerId(userId).stream()
+        return itemRepository.findByOwnerId(userId).stream()
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
     }
@@ -78,7 +83,7 @@ public class ItemServiceImpl implements ItemService {
         }
 
         String lowerText = text.toLowerCase();
-        return itemStorage.findAll().stream()
+        return itemRepository.findAll().stream()
                 .filter(Item::isAvailable)
                 .filter(item -> item.getName().toLowerCase().contains(lowerText) ||
                         item.getDescription().toLowerCase().contains(lowerText))
