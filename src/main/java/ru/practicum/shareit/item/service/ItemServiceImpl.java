@@ -4,14 +4,19 @@ package ru.practicum.shareit.item.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.dto.BookingShortDto;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.storage.BookingRepository;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemWithBookingsDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.storage.UserRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,6 +26,7 @@ import java.util.stream.Collectors;
 public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
 
     @Override
     @Transactional
@@ -63,6 +69,9 @@ public class ItemServiceImpl implements ItemService {
     public ItemDto getById(int itemId, int userId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь не найдена"));
+        if (item.getOwner().getId() == userId) {
+            return toItemWithBookingsDto(item);
+        }
         return ItemMapper.toItemDto(item);
     }
 
@@ -71,8 +80,16 @@ public class ItemServiceImpl implements ItemService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
-        return itemRepository.findByOwnerId(userId).stream()
-                .map(ItemMapper::toItemDto)
+        List<Item> items = itemRepository.findByOwnerId(userId);
+        LocalDateTime now = LocalDateTime.now();
+
+        return items.stream()
+                .map(item -> {
+                    if (item.getOwner().getId() == userId) {
+                        return toItemWithBookingsDto(item);
+                    }
+                    return ItemMapper.toItemDto(item);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -89,5 +106,36 @@ public class ItemServiceImpl implements ItemService {
                         item.getDescription().toLowerCase().contains(lowerText))
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
+    }
+
+    private ItemWithBookingsDto toItemWithBookingsDto(Item item) {
+        LocalDateTime now = LocalDateTime.now();
+        ItemWithBookingsDto dto = new ItemWithBookingsDto(ItemMapper.toItemDto(item));
+        List<Booking> lastBookings = bookingRepository.findLastBooking(item.getId(), now);
+        if (!lastBookings.isEmpty()) {
+            Booking lastBooking = lastBookings.get(0);
+            dto.setLastBooking(new BookingShortDto(
+                    lastBooking.getId(),
+                    lastBooking.getBooker().getId(),
+                    lastBooking.getStart(),
+                    lastBooking.getEnd()
+            ));
+        }
+
+        List<Booking> nextBookings = bookingRepository.findNextBooking(item.getId(), now);
+        if (!nextBookings.isEmpty()) {
+            Booking nextBooking = nextBookings.get(0);
+            dto.setNextBooking(new BookingShortDto(
+                    nextBooking.getId(),
+                    nextBooking.getBooker().getId(),
+                    nextBooking.getStart(),
+                    nextBooking.getEnd()
+            ));
+        }
+
+        // TODO: добавить комментарии позже
+        dto.setComments(List.of());
+
+        return dto;
     }
 }
