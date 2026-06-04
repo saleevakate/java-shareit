@@ -12,8 +12,8 @@ import ru.practicum.shareit.comment.dto.CommentCreateDto;
 import ru.practicum.shareit.comment.dto.CommentDto;
 import ru.practicum.shareit.comment.model.Comment;
 import ru.practicum.shareit.comment.storage.CommentRepository;
+import ru.practicum.shareit.exception.ItemUnavailableException;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemWithBookingsDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
@@ -75,38 +75,56 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public ItemDto getById(int itemId, int userId) {
+    public ItemWithBookingsDto getById(int itemId, int userId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь не найдена"));
 
         List<CommentDto> comments = getCommentsForItem(itemId);
-
-        // Если запрашивает владелец — добавляем даты бронирований
+        ItemWithBookingsDto dto = new ItemWithBookingsDto(ItemMapper.toItemDto(item));
+        dto.setComments(comments);
         if (item.getOwner().getId() == userId) {
-            return toItemWithBookingsDto(item, comments);
-        }
+            LocalDateTime now = LocalDateTime.now();
 
-        ItemDto itemDto = ItemMapper.toItemDto(item);
-        return itemDto;
+            List<Booking> lastBookings = bookingRepository.findLastBooking(item.getId(), now);
+            if (!lastBookings.isEmpty()) {
+                Booking lastBooking = lastBookings.get(0);
+                dto.setLastBooking(new BookingShortDto(
+                        lastBooking.getId(),
+                        lastBooking.getBooker().getId(),
+                        lastBooking.getStart(),
+                        lastBooking.getEnd()
+                ));
+            }
+
+            List<Booking> nextBookings = bookingRepository.findNextBooking(item.getId(), now);
+            if (!nextBookings.isEmpty()) {
+                Booking nextBooking = nextBookings.get(0);
+                dto.setNextBooking(new BookingShortDto(
+                        nextBooking.getId(),
+                        nextBooking.getBooker().getId(),
+                        nextBooking.getStart(),
+                        nextBooking.getEnd()
+                ));
+            }
+        }
+        // Для не-владельца lastBooking и nextBooking останутся null
+
+        return dto;
     }
 
     @Override
-    public List<ItemDto> getByOwner(int userId) {
+    public List<ItemWithBookingsDto> getByOwner(int userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
         List<Item> items = itemRepository.findByOwnerId(userId);
-
         List<Integer> itemIds = items.stream().map(Item::getId).collect(Collectors.toList());
         Map<Integer, List<CommentDto>> commentsMap = getCommentsForItems(itemIds);
 
         return items.stream()
                 .map(item -> {
                     List<CommentDto> comments = commentsMap.getOrDefault(item.getId(), List.of());
-                    if (item.getOwner().getId() == userId) {
-                        return toItemWithBookingsDto(item, comments);
-                    }
-                    return ItemMapper.toItemDto(item);
+                    return toItemWithBookingsDto(item, comments);
                 })
                 .collect(Collectors.toList());
     }
@@ -136,7 +154,7 @@ public class ItemServiceImpl implements ItemService {
                         itemId, userId, StatusBooking.APPROVED, LocalDateTime.now());
 
         if (!hasCompletedBooking) {
-            throw new ValidationException("Пользователь не брал эту вещь в аренду или аренда ещё не завершена");
+            throw new ItemUnavailableException("Пользователь не брал эту вещь в аренду или аренда ещё не завершена");
         }
 
         Comment comment = new Comment();
@@ -202,6 +220,7 @@ public class ItemServiceImpl implements ItemService {
             ));
         }
         dto.setComments(comments);
+
         return dto;
     }
 }

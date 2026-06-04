@@ -10,6 +10,7 @@ import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.storage.BookingRepository;
+import ru.practicum.shareit.exception.ItemUnavailableException;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.model.Item;
@@ -37,12 +38,12 @@ public class BookingServiceImpl implements BookingService {
         Item item = itemRepository.findById(request.getItemId())
                 .orElseThrow(() -> new NotFoundException("Вещь не найдена"));
 
-        if (item.getOwner().getId()== bookerId) {
+        if (item.getOwner().getId() == bookerId) {
             throw new NotFoundException("Нельзя бронировать свою вещь");
         }
 
         if (!item.isAvailable()) {
-            throw new ValidationException("Вещь недоступна для бронирования");
+            throw new ItemUnavailableException("Вещь недоступна для бронирования");
         }
 
         if (request.getEnd().isBefore(request.getStart()) || request.getEnd().equals(request.getStart())) {
@@ -71,7 +72,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new NotFoundException("Бронирование не найдено"));
 
         if (!(booking.getItem().getOwner().getId() == ownerId)) {
-            throw new NotFoundException("Подтвердить бронирование может только владелец вещи");
+            throw new ItemUnavailableException("Подтвердить бронирование может только владелец вещи");
         }
 
         if (booking.getStatus() != StatusBooking.WAITING) {
@@ -156,10 +157,14 @@ public class BookingServiceImpl implements BookingService {
                 booking.getId(),
                 booking.getStart(),
                 booking.getEnd(),
-                booking.getItem().getId(),
-                booking.getItem().getName(),
-                booking.getBooker().getId(),
-                booking.getBooker().getName(),
+                new BookingResponseDto.ItemInfo(
+                        booking.getItem().getId(),
+                        booking.getItem().getName()
+                ),
+                new BookingResponseDto.BookerInfo(
+                        booking.getBooker().getId(),
+                        booking.getBooker().getName()
+                ),
                 booking.getStatus()
         );
     }

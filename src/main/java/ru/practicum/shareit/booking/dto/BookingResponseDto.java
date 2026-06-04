@@ -12,9 +12,21 @@ public class BookingResponseDto {
     private Integer id;
     private LocalDateTime start;
     private LocalDateTime end;
-    private Integer itemId;
-    private String itemName;
-    private Integer bookerId;
-    private String bookerName;
+    private ItemInfo item;
+    private BookerInfo booker;
     private StatusBooking status;
+
+    @Data
+    @AllArgsConstructor
+    public static class ItemInfo {
+        private Integer id;
+        private String name;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class BookerInfo {
+        private Integer id;
+        private String name;
+    }
 }

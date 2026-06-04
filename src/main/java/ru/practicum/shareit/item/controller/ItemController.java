@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.comment.dto.CommentCreateDto;
 import ru.practicum.shareit.comment.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemWithBookingsDto;
 import ru.practicum.shareit.item.service.ItemService;
 import java.util.List;
 
@@ -35,15 +36,14 @@ public class ItemController {
     }
 
     @GetMapping("/{itemId}")
-    public ItemDto getById(
-            @PathVariable int itemId,
-            @RequestHeader("X-Sharer-User-Id") int userId) {
+    public ItemWithBookingsDto getById(@PathVariable int itemId,
+                                       @RequestHeader("X-Sharer-User-Id") int userId) {
         log.info("GET /items/{} - просмотр вещи, userId={}", itemId, userId);
         return itemService.getById(itemId, userId);
     }
 
     @GetMapping
-    public List<ItemDto> getByOwner(@RequestHeader("X-Sharer-User-Id") int userId) {
+    public List<ItemWithBookingsDto> getByOwner(@RequestHeader("X-Sharer-User-Id") int userId) {
         log.info("GET /items - список вещей владельца, userId={}", userId);
         return itemService.getByOwner(userId);
     }
