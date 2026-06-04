@@ -5,7 +5,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import ru.practicum.shareit.booking.dto.BookingShortDto;
-//import ru.practicum.shareit.item.model.Comment;
+import ru.practicum.shareit.comment.dto.CommentDto;
+
 import java.util.List;
 
 @Data
@@ -15,7 +16,7 @@ import java.util.List;
 public class ItemWithBookingsDto extends ItemDto {
     private BookingShortDto lastBooking;
     private BookingShortDto nextBooking;
-    //private List<CommentDto> comments;
+    private List<CommentDto> comments;
 
     public ItemWithBookingsDto(ItemDto itemDto) {
         super(itemDto.getId(), itemDto.getName(), itemDto.getDescription(),

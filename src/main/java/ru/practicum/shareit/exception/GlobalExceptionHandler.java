@@ -21,7 +21,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ValidationException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse validationExceptionHandler(ValidationException e) {
         logger.error("Validation exception: {}", e.getMessage());
         return new ErrorResponse(409, e.getMessage());
