@@ -8,6 +8,7 @@ import ru.practicum.shareit.booking.BookingState;
 import ru.practicum.shareit.booking.StatusBooking;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
+import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.storage.BookingRepository;
 import ru.practicum.shareit.exception.ItemUnavailableException;
@@ -54,15 +55,10 @@ public class BookingServiceImpl implements BookingService {
             throw new ValidationException("Дата начала не может быть в прошлом");
         }
 
-        Booking booking = new Booking();
-        booking.setStart(request.getStart());
-        booking.setEnd(request.getEnd());
-        booking.setItem(item);
-        booking.setBooker(booker);
-        booking.setStatus(StatusBooking.WAITING);
+        Booking booking = BookingMapper.toBooking(request, item, booker);
 
         booking = bookingRepository.save(booking);
-        return toResponseDto(booking);
+        return BookingMapper.toResponseDto(booking);
     }
 
     @Override
@@ -81,7 +77,7 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(approved ? StatusBooking.APPROVED : StatusBooking.REJECTED);
         booking = bookingRepository.save(booking);
-        return toResponseDto(booking);
+        return BookingMapper.toResponseDto(booking);
     }
 
     @Override
@@ -89,7 +85,7 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findByIdAndUser(bookingId, userId)
                 .orElseThrow(() -> new NotFoundException(
                         "Бронирование не найдено или у вас нет прав на его просмотр"));
-        return toResponseDto(booking);
+        return BookingMapper.toResponseDto(booking);
     }
 
     @Override
@@ -104,19 +100,15 @@ public class BookingServiceImpl implements BookingService {
             case CURRENT -> bookingRepository.findCurrentByBooker(userId, now);
             case FUTURE -> bookingRepository.findFutureByBooker(userId, now);
             case PAST -> bookingRepository.findPastByBooker(userId, now);
-            case WAITING -> bookingRepository.findByBookerId(userId, Sort.by(Sort.Direction.DESC, "start"))
-                    .stream()
-                    .filter(b -> b.getStatus() == StatusBooking.WAITING)
-                    .collect(Collectors.toList());
-            case REJECTED -> bookingRepository.findByBookerId(userId, Sort.by(Sort.Direction.DESC, "start"))
-                    .stream()
-                    .filter(b -> b.getStatus() == StatusBooking.REJECTED)
-                    .collect(Collectors.toList());
+            case WAITING -> bookingRepository.findByBookerIdAndStatus(
+                    userId, StatusBooking.WAITING, Sort.by(Sort.Direction.DESC, "start"));
+            case REJECTED -> bookingRepository.findByBookerIdAndStatus(
+                    userId, StatusBooking.REJECTED, Sort.by(Sort.Direction.DESC, "start"));
             default -> throw new IllegalArgumentException("Unknown state: " + stateParam);
         };
 
         return bookings.stream()
-                .map(this::toResponseDto)
+                .map(BookingMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 
@@ -136,36 +128,15 @@ public class BookingServiceImpl implements BookingService {
             case CURRENT -> bookingRepository.findCurrentByOwner(userId, now);
             case FUTURE -> bookingRepository.findFutureByOwner(userId, now);
             case PAST -> bookingRepository.findPastByOwner(userId, now);
-            case WAITING -> bookingRepository.findByItemOwnerId(userId, Sort.by(Sort.Direction.DESC, "start"))
-                    .stream()
-                    .filter(b -> b.getStatus() == StatusBooking.WAITING)
-                    .collect(Collectors.toList());
-            case REJECTED -> bookingRepository.findByItemOwnerId(userId, Sort.by(Sort.Direction.DESC, "start"))
-                    .stream()
-                    .filter(b -> b.getStatus() == StatusBooking.REJECTED)
-                    .collect(Collectors.toList());
+            case WAITING -> bookingRepository.findByItemOwnerIdAndStatus(
+                    userId, StatusBooking.WAITING, Sort.by(Sort.Direction.DESC, "start"));
+            case REJECTED -> bookingRepository.findByItemOwnerIdAndStatus(
+                    userId, StatusBooking.REJECTED, Sort.by(Sort.Direction.DESC, "start"));
             default -> throw new IllegalArgumentException("Unknown state: " + stateParam);
         };
 
         return bookings.stream()
-                .map(this::toResponseDto)
+                .map(BookingMapper::toResponseDto)
                 .collect(Collectors.toList());
-    }
-
-    private BookingResponseDto toResponseDto(Booking booking) {
-        return new BookingResponseDto(
-                booking.getId(),
-                booking.getStart(),
-                booking.getEnd(),
-                new BookingResponseDto.ItemInfo(
-                        booking.getItem().getId(),
-                        booking.getItem().getName()
-                ),
-                new BookingResponseDto.BookerInfo(
-                        booking.getBooker().getId(),
-                        booking.getBooker().getName()
-                ),
-                booking.getStatus()
-        );
     }
 }
