@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
         return new ErrorResponse(409, e.getMessage());
     }
 
-    @ExceptionHandler({MethodArgumentNotValidException.class})
+    @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleThrowable(MethodArgumentNotValidException e) {
         logger.error("Method argument not valid exception: {}", e.getMessage());
@@ -39,5 +39,12 @@ public class GlobalExceptionHandler {
     public ErrorResponse handleThrowable(Throwable e) {
         logger.error("Throwable: {}", e.getMessage());
         return new ErrorResponse(500, e.getMessage());
+    }
+
+    @ExceptionHandler(ItemUnavailableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse itemUnavailableException(ItemUnavailableException e) {
+        logger.error("ItemUnavailableException: {}", e.getMessage());
+        return new ErrorResponse(400, e.getMessage());
     }
 }
