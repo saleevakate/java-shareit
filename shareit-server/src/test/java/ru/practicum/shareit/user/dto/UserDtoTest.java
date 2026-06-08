@@ -150,7 +150,7 @@ class UserDtoTest {
 
     @Test
     void equals_shouldReturnFalse_whenComparedToNull() {
-        assertThat(dto).isNotEqualTo(null);
+        assertThat(dto.equals(null)).isFalse();
     }
 
     @Test
