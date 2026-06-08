@@ -17,9 +17,4 @@ public class ItemWithBookingsDto extends ItemDto {
     private BookingShortDto lastBooking;
     private BookingShortDto nextBooking;
     private List<CommentDto> comments;
-
-    public ItemWithBookingsDto(ItemDto itemDto) {
-        super(itemDto.getId(), itemDto.getName(), itemDto.getDescription(),
-                itemDto.getAvailable(), itemDto.getRequestId());
-    }
 }

@@ -15,5 +15,5 @@ public class ItemRequestDto {
     private Integer id;
     private String description;
     private LocalDateTime created;
-    private List<ItemResponseDto> items;  // вещи-ответы на запрос
+    private List<ItemResponseDto> items;
 }

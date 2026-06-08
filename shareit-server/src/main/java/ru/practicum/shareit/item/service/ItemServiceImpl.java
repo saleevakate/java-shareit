@@ -12,8 +12,8 @@ import ru.practicum.shareit.comment.dto.CommentDto;
 import ru.practicum.shareit.comment.mapper.CommentMapper;
 import ru.practicum.shareit.comment.model.Comment;
 import ru.practicum.shareit.comment.storage.CommentRepository;
+import ru.practicum.shareit.exception.MethodArgumentNotValidException;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemWithBookingsDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
@@ -84,16 +84,38 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public ItemDto getById(int itemId, int userId) {
+    public ItemWithBookingsDto getById(int itemId, int userId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь не найдена"));
 
         List<CommentDto> comments = getCommentsForItem(itemId);
-
+        ItemWithBookingsDto dto = new ItemWithBookingsDto(ItemMapper.toItemDto(item));
+        dto.setComments(comments);
         if (item.getOwner().getId() == userId) {
-            return toItemWithBookingsDto(item, comments);
+            LocalDateTime now = LocalDateTime.now();
+
+            List<Booking> lastBookings = bookingRepository.findLastBooking(item.getId(), now);
+            if (!lastBookings.isEmpty()) {
+                Booking lastBooking = lastBookings.get(0);
+                dto.setLastBooking(new BookingShortDto(
+                        lastBooking.getId(),
+                        lastBooking.getBooker().getId(),
+                        lastBooking.getStart(),
+                        lastBooking.getEnd()
+                ));
+            }
+            List<Booking> nextBookings = bookingRepository.findNextBooking(item.getId(), now);
+            if (!nextBookings.isEmpty()) {
+                Booking nextBooking = nextBookings.get(0);
+                dto.setNextBooking(new BookingShortDto(
+                        nextBooking.getId(),
+                        nextBooking.getBooker().getId(),
+                        nextBooking.getStart(),
+                        nextBooking.getEnd()
+                ));
+            }
         }
-        return ItemMapper.toItemDto(item);
+        return dto;
     }
 
     @Override
@@ -137,7 +159,7 @@ public class ItemServiceImpl implements ItemService {
                         itemId, userId, StatusBooking.APPROVED, LocalDateTime.now());
 
         if (!hasCompletedBooking) {
-            throw new ValidationException("Пользователь не брал эту вещь в аренду или аренда ещё не завершена");
+            throw new MethodArgumentNotValidException("Пользователь не брал эту вещь в аренду или аренда ещё не завершена");
         }
 
         Comment comment = CommentMapper.toComment(commentDto, item, author);

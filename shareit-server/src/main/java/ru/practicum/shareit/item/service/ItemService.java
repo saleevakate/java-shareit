@@ -13,7 +13,7 @@ public interface ItemService {
 
     ItemDto update(int itemId, ItemDto itemDto, int userId);
 
-    ItemDto getById(int itemId, int userId);
+    ItemWithBookingsDto getById(int itemId, int userId);
 
     List<ItemWithBookingsDto> getByOwner(int userId);
 

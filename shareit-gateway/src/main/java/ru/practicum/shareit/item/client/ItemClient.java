@@ -14,35 +14,37 @@ import java.util.Map;
 public class ItemClient extends BaseClient {
 
     private static final String API_PREFIX = "/items";
+    private final String baseUrl;
 
-    public ItemClient(@Value("${shareit-server.url}") String serverUrl, RestTemplateBuilder builder) {
-        super(builder
-                .rootUri(serverUrl + API_PREFIX)
-                .build());
+    public ItemClient(@Value("${shareit-server.url:http://localhost:9090}") String serverUrl,
+                      RestTemplateBuilder builder) {
+        super(builder.build());
+        this.baseUrl = serverUrl + API_PREFIX;
+        System.out.println("DEBUG: ItemClient using baseUrl = " + baseUrl);
     }
 
     public ResponseEntity<Object> create(ItemDto itemDto, int userId) {
-        return post("", (long) userId, itemDto);
+        return post(baseUrl, (long) userId, itemDto);
     }
 
     public ResponseEntity<Object> update(int itemId, ItemDto itemDto, int userId) {
-        return patch("/" + itemId, (long) userId, itemDto);
+        return patch(baseUrl + "/" + itemId, (long) userId, itemDto);
     }
 
     public ResponseEntity<Object> getById(int itemId, int userId) {
-        return get("/" + itemId, (long) userId);
+        return get(baseUrl + "/" + itemId, (long) userId);
     }
 
     public ResponseEntity<Object> getByOwner(int userId) {
-        return get("", (long) userId);
+        return get(baseUrl, (long) userId);
     }
 
     public ResponseEntity<Object> search(String text, int userId) {
         Map<String, Object> params = Map.of("text", text);
-        return get("/search?text={text}", (long) userId, params);
+        return get(baseUrl + "/search?text={text}", (long) userId, params);
     }
 
     public ResponseEntity<Object> addComment(int itemId, CommentCreateDto commentDto, int userId) {
-        return post("/" + itemId + "/comment", (long) userId, commentDto);
+        return post(baseUrl + "/" + itemId + "/comment", (long) userId, commentDto);
     }
 }

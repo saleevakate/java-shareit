@@ -26,10 +26,6 @@ public abstract class BaseClient {
         return makeAndSendRequest(HttpMethod.POST, path, userId, null, body);
     }
 
-    protected ResponseEntity<Object> put(String path, Long userId, Object body) {
-        return makeAndSendRequest(HttpMethod.PUT, path, userId, null, body);
-    }
-
     protected ResponseEntity<Object> patch(String path, Long userId, Object body) {
         return makeAndSendRequest(HttpMethod.PATCH, path, userId, null, body);
     }
@@ -42,17 +38,15 @@ public abstract class BaseClient {
                                                       Map<String, Object> parameters, Object body) {
         HttpEntity<Object> requestEntity = new HttpEntity<>(body, defaultHeaders(userId));
 
-        ResponseEntity<Object> response;
         try {
-            if (parameters != null) {
-                response = rest.exchange(path, method, requestEntity, Object.class, parameters);
+            if (parameters != null && !parameters.isEmpty()) {
+                return rest.exchange(path, method, requestEntity, Object.class, parameters);
             } else {
-                response = rest.exchange(path, method, requestEntity, Object.class);
+                return rest.exchange(path, method, requestEntity, Object.class);
             }
         } catch (HttpStatusCodeException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsByteArray());
         }
-        return response;
     }
 
     private HttpHeaders defaultHeaders(Long userId) {
