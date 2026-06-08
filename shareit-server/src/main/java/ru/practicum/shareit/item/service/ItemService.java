@@ -13,9 +13,9 @@ public interface ItemService {
 
     ItemDto update(int itemId, ItemDto itemDto, int userId);
 
-    ItemWithBookingsDto getById(int itemId, int userId);
+    ItemDto getById(int itemId, int userId);
 
-    List<ItemDto> getByOwner(int userId);
+    List<ItemWithBookingsDto> getByOwner(int userId);
 
     List<ItemDto> search(String text, int userId);
 

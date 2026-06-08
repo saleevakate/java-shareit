@@ -1,6 +1,5 @@
 package ru.practicum.shareit.item.service;
 
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,10 +9,11 @@ import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.storage.BookingRepository;
 import ru.practicum.shareit.comment.dto.CommentCreateDto;
 import ru.practicum.shareit.comment.dto.CommentDto;
+import ru.practicum.shareit.comment.mapper.CommentMapper;
 import ru.practicum.shareit.comment.model.Comment;
 import ru.practicum.shareit.comment.storage.CommentRepository;
-import ru.practicum.shareit.exception.ItemUnavailableException;
 import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemWithBookingsDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
@@ -84,45 +84,20 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public ItemWithBookingsDto getById(int itemId, int userId) {
+    public ItemDto getById(int itemId, int userId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь не найдена"));
 
         List<CommentDto> comments = getCommentsForItem(itemId);
-        ItemWithBookingsDto dto = new ItemWithBookingsDto(ItemMapper.toItemDto(item));
-        dto.setComments(comments);
+
         if (item.getOwner().getId() == userId) {
-            LocalDateTime now = LocalDateTime.now();
-
-            List<Booking> lastBookings = bookingRepository.findLastBooking(item.getId(), now);
-            if (!lastBookings.isEmpty()) {
-                Booking lastBooking = lastBookings.get(0);
-                dto.setLastBooking(new BookingShortDto(
-                        lastBooking.getId(),
-                        lastBooking.getBooker().getId(),
-                        lastBooking.getStart(),
-                        lastBooking.getEnd()
-                ));
-            }
-
-            List<Booking> nextBookings = bookingRepository.findNextBooking(item.getId(), now);
-            if (!nextBookings.isEmpty()) {
-                Booking nextBooking = nextBookings.get(0);
-                dto.setNextBooking(new BookingShortDto(
-                        nextBooking.getId(),
-                        nextBooking.getBooker().getId(),
-                        nextBooking.getStart(),
-                        nextBooking.getEnd()
-                ));
-            }
+            return toItemWithBookingsDto(item, comments);
         }
-        // Для не-владельца lastBooking и nextBooking останутся null
-
-        return dto;
+        return ItemMapper.toItemDto(item);
     }
 
     @Override
-    public List<ItemDto> getByOwner(int userId) {
+    public List<ItemWithBookingsDto> getByOwner(int userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
@@ -143,7 +118,6 @@ public class ItemServiceImpl implements ItemService {
         if (text == null || text.isBlank()) {
             return List.of();
         }
-
         return itemRepository.searchAvailable(text).stream()
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
@@ -163,26 +137,17 @@ public class ItemServiceImpl implements ItemService {
                         itemId, userId, StatusBooking.APPROVED, LocalDateTime.now());
 
         if (!hasCompletedBooking) {
-            throw new ItemUnavailableException("Пользователь не брал эту вещь в аренду или аренда ещё не завершена");
+            throw new ValidationException("Пользователь не брал эту вещь в аренду или аренда ещё не завершена");
         }
 
-        Comment comment = new Comment();
-        comment.setText(commentDto.getText());
-        comment.setItem(item);
-        comment.setAuthor(author);
-        comment.setCreated(LocalDateTime.now());
+        Comment comment = CommentMapper.toComment(commentDto, item, author);
         comment = commentRepository.save(comment);
-        CommentDto responseDto = new CommentDto();
-        responseDto.setId(comment.getId());
-        responseDto.setText(comment.getText());
-        responseDto.setAuthorName(author.getName());
-        responseDto.setCreated(comment.getCreated());
-        return responseDto;
+        return CommentMapper.toCommentDto(comment);
     }
 
     private List<CommentDto> getCommentsForItem(Integer itemId) {
         return commentRepository.findByItemIdOrderByCreatedDesc(itemId).stream()
-                .map(this::toCommentDto)
+                .map(CommentMapper::toCommentDto)
                 .collect(Collectors.toList());
     }
 
@@ -191,22 +156,14 @@ public class ItemServiceImpl implements ItemService {
         return comments.stream()
                 .collect(Collectors.groupingBy(
                         comment -> comment.getItem().getId(),
-                        Collectors.mapping(this::toCommentDto, Collectors.toList())
+                        Collectors.mapping(CommentMapper::toCommentDto, Collectors.toList())
                 ));
-    }
-
-    private CommentDto toCommentDto(Comment comment) {
-        CommentDto dto = new CommentDto();
-        dto.setId(comment.getId());
-        dto.setText(comment.getText());
-        dto.setAuthorName(comment.getAuthor().getName());
-        dto.setCreated(comment.getCreated());
-        return dto;
     }
 
     private ItemWithBookingsDto toItemWithBookingsDto(Item item, List<CommentDto> comments) {
         LocalDateTime now = LocalDateTime.now();
         ItemWithBookingsDto dto = new ItemWithBookingsDto(ItemMapper.toItemDto(item));
+
         List<Booking> lastBookings = bookingRepository.findLastBooking(item.getId(), now);
         if (!lastBookings.isEmpty()) {
             Booking lastBooking = lastBookings.get(0);
@@ -228,8 +185,8 @@ public class ItemServiceImpl implements ItemService {
                     nextBooking.getEnd()
             ));
         }
-        dto.setComments(comments);
 
+        dto.setComments(comments);
         return dto;
     }
 }

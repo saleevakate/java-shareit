@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import ru.practicum.shareit.booking.StatusBooking;
 import ru.practicum.shareit.booking.model.Booking;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -49,7 +48,7 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
             Integer itemId, Integer bookerId, StatusBooking status, LocalDateTime endBefore);
 
     @Query("SELECT b FROM Booking b WHERE b.item.id = :itemId " +
-            "AND b.status = 'APPROVED' AND b.start < :now ORDER BY b.end DESC")
+            "AND b.status = 'APPROVED' AND b.end < :now ORDER BY b.end DESC")
     List<Booking> findLastBooking(@Param("itemId") Integer itemId, @Param("now") LocalDateTime now);
 
     @Query("SELECT b FROM Booking b WHERE b.item.id = :itemId " +

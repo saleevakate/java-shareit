@@ -1,6 +1,5 @@
 package ru.practicum.shareit.user.service;
 
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +11,7 @@ import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.storage.UserRepository;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -62,10 +62,11 @@ public class UserServiceImpl implements UserService {
     public List<UserDto> getAll() {
         return userRepository.findAll().stream()
                 .map(UserMapper::toUserDto)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional
     public void delete(int id) {
         userRepository.deleteById(id);
     }
