@@ -115,9 +115,12 @@ class ItemServiceImplTest {
         when(itemRepository.findById(1)).thenReturn(Optional.of(item));
         when(commentRepository.findByItemIdOrderByCreatedDesc(1)).thenReturn(List.of());
 
-        ItemDto result = itemService.getById(1, 99);
+        ItemWithBookingsDto result = (ItemWithBookingsDto) itemService.getById(1, 99);
 
-        assertThat(result).isNotInstanceOf(ItemWithBookingsDto.class);
+        assertThat(result).isNotNull();
+        assertThat(result.getLastBooking()).isNull();
+        assertThat(result.getNextBooking()).isNull();
+        assertThat(result.getComments()).isNotNull();
     }
 
     @Test

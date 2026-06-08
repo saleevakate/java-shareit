@@ -68,14 +68,16 @@ class ItemControllerTest {
 
     @Test
     void getById_shouldReturnItem() throws Exception {
-        when(itemService.getById(1, 1)).thenReturn(itemDto);
+        ItemWithBookingsDto responseDto = new ItemWithBookingsDto(itemDto);
+        responseDto.setComments(List.of());
+
+        when(itemService.getById(1, 1)).thenReturn(responseDto);
 
         mockMvc.perform(get("/items/1")
                         .header("X-Sharer-User-Id", 1))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1));
     }
-
     @Test
     void getByOwner_shouldReturnItems() throws Exception {
         ItemWithBookingsDto itemWithBookingsDto = new ItemWithBookingsDto(itemDto);
