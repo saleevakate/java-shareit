@@ -16,10 +16,12 @@ import ru.practicum.shareit.booking.service.BookingService;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(BookingController.class)
 class BookingControllerTest {
@@ -56,13 +58,7 @@ class BookingControllerTest {
     void create_shouldReturnBooking() throws Exception {
         when(bookingService.create(any(BookingRequestDto.class), eq(1))).thenReturn(responseDto);
 
-        mockMvc.perform(post("/bookings")
-                        .header("X-Sharer-User-Id", 1)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.status").value("WAITING"));
+        mockMvc.perform(post("/bookings").header("X-Sharer-User-Id", 1).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(requestDto))).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(1)).andExpect(jsonPath("$.status").value("WAITING"));
     }
 
     @Test
@@ -70,42 +66,27 @@ class BookingControllerTest {
         responseDto.setStatus(StatusBooking.APPROVED);
         when(bookingService.approve(eq(1), eq(true), eq(1))).thenReturn(responseDto);
 
-        mockMvc.perform(patch("/bookings/1")
-                        .param("approved", "true")
-                        .header("X-Sharer-User-Id", 1))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("APPROVED"));
+        mockMvc.perform(patch("/bookings/1").param("approved", "true").header("X-Sharer-User-Id", 1)).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"));
     }
 
     @Test
     void getById_shouldReturnBooking() throws Exception {
         when(bookingService.getById(1, 1)).thenReturn(responseDto);
 
-        mockMvc.perform(get("/bookings/1")
-                        .header("X-Sharer-User-Id", 1))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1));
+        mockMvc.perform(get("/bookings/1").header("X-Sharer-User-Id", 1)).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(1));
     }
 
     @Test
     void getByBooker_shouldReturnBookings() throws Exception {
         when(bookingService.getByBooker(1, "ALL")).thenReturn(List.of(responseDto));
 
-        mockMvc.perform(get("/bookings")
-                        .param("state", "ALL")
-                        .header("X-Sharer-User-Id", 1))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1));
+        mockMvc.perform(get("/bookings").param("state", "ALL").header("X-Sharer-User-Id", 1)).andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(1));
     }
 
     @Test
     void getByOwner_shouldReturnBookings() throws Exception {
         when(bookingService.getByOwner(1, "ALL")).thenReturn(List.of(responseDto));
 
-        mockMvc.perform(get("/bookings/owner")
-                        .param("state", "ALL")
-                        .header("X-Sharer-User-Id", 1))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1));
+        mockMvc.perform(get("/bookings/owner").param("state", "ALL").header("X-Sharer-User-Id", 1)).andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(1));
     }
 }
