@@ -52,10 +52,23 @@ class CommentDtoTest {
     }
 
     @Test
+    void getters_shouldReturnCorrectValues() {
+        assertThat(dto.getId()).isEqualTo(1);
+        assertThat(dto.getText()).isEqualTo("Great item!");
+        assertThat(dto.getAuthorName()).isEqualTo("User");
+        assertThat(dto.getCreated()).isEqualTo(created);
+    }
+
+    @Test
     void equals_shouldReturnTrue_whenAllFieldsSame() {
         CommentDto dto2 = new CommentDto(1, "Great item!", "User", created);
 
         assertThat(dto).isEqualTo(dto2);
+    }
+
+    @Test
+    void equals_shouldReturnTrue_whenSameObject() {
+        assertThat(dto).isEqualTo(dto);
     }
 
     @Test
@@ -87,6 +100,16 @@ class CommentDtoTest {
     }
 
     @Test
+    void equals_shouldReturnFalse_whenComparedToNull() {
+        assertThat(dto).isNotEqualTo(null);
+    }
+
+    @Test
+    void equals_shouldReturnFalse_whenDifferentClass() {
+        assertThat(dto).isNotEqualTo(new Object());
+    }
+
+    @Test
     void hashCode_shouldBeSame_whenAllFieldsSame() {
         CommentDto dto2 = new CommentDto(1, "Great item!", "User", created);
 
@@ -101,6 +124,13 @@ class CommentDtoTest {
     }
 
     @Test
+    void hashCode_shouldBeDifferent_whenDifferentText() {
+        CommentDto dto2 = new CommentDto(1, "Different text", "User", created);
+
+        assertThat(dto.hashCode()).isNotEqualTo(dto2.hashCode());
+    }
+
+    @Test
     void toString_shouldContainFields() {
         String result = dto.toString();
 
@@ -108,5 +138,39 @@ class CommentDtoTest {
         assertThat(result).contains("text=Great item!");
         assertThat(result).contains("authorName=User");
         assertThat(result).contains("created");
+    }
+
+    @Test
+    void canHandleNullId() {
+        dto.setId(null);
+        assertThat(dto.getId()).isNull();
+    }
+
+    @Test
+    void canHandleNullText() {
+        dto.setText(null);
+        assertThat(dto.getText()).isNull();
+    }
+
+    @Test
+    void canHandleNullAuthorName() {
+        dto.setAuthorName(null);
+        assertThat(dto.getAuthorName()).isNull();
+    }
+
+    @Test
+    void canHandleNullCreated() {
+        dto.setCreated(null);
+        assertThat(dto.getCreated()).isNull();
+    }
+
+    @Test
+    void canHandleAllFieldsNull() {
+        CommentDto emptyDto = new CommentDto(null, null, null, null);
+
+        assertThat(emptyDto.getId()).isNull();
+        assertThat(emptyDto.getText()).isNull();
+        assertThat(emptyDto.getAuthorName()).isNull();
+        assertThat(emptyDto.getCreated()).isNull();
     }
 }

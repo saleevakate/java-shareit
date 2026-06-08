@@ -88,4 +88,21 @@ class ItemRequestMapperTest {
         ItemResponseDto result = ItemRequestMapper.toItemResponseDto(null);
         assertThat(result).isNull();
     }
+
+    @Test
+    void toItemRequestDto_shouldHandleNullItems() {
+        ItemRequestDto result = ItemRequestMapper.toItemRequestDto(request, null);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(1);
+        assertThat(result.getItems()).isNull();
+    }
+
+    @Test
+    void toItemRequestDto_shouldHandleEmptyItems() {
+        ItemRequestDto result = ItemRequestMapper.toItemRequestDto(request, List.of());
+
+        assertThat(result).isNotNull();
+        assertThat(result.getItems()).isEmpty();
+    }
 }

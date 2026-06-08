@@ -12,6 +12,7 @@ import ru.practicum.shareit.booking.StatusBooking;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.exception.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -88,5 +89,91 @@ class BookingControllerTest {
         when(bookingService.getByOwner(1, "ALL")).thenReturn(List.of(responseDto));
 
         mockMvc.perform(get("/bookings/owner").param("state", "ALL").header("X-Sharer-User-Id", 1)).andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(1));
+    }
+
+    @Test
+    void create_shouldReturnBadRequest_whenDatesInvalid() throws Exception {
+        BookingRequestDto invalidDto = new BookingRequestDto();
+        invalidDto.setItemId(1);
+        invalidDto.setStart(LocalDateTime.now().minusDays(1));
+        invalidDto.setEnd(LocalDateTime.now().plusDays(1));
+
+        when(bookingService.create(any(BookingRequestDto.class), eq(1)))
+                .thenThrow(new ru.practicum.shareit.exception.ValidationException("Дата начала не может быть в прошлом"));
+
+        mockMvc.perform(post("/bookings")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void approve_shouldReturnNotFound_whenBookingNotFound() throws Exception {
+        when(bookingService.approve(eq(999), eq(true), eq(1)))
+                .thenThrow(new NotFoundException("Бронирование не найдено"));
+
+        mockMvc.perform(patch("/bookings/999")
+                        .param("approved", "true")
+                        .header("X-Sharer-User-Id", 1))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getById_shouldReturnNotFound_whenBookingNotFound() throws Exception {
+        when(bookingService.getById(999, 1))
+                .thenThrow(new NotFoundException("Бронирование не найдено"));
+
+        mockMvc.perform(get("/bookings/999")
+                        .header("X-Sharer-User-Id", 1))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getByBooker_shouldReturnEmptyList_whenNoBookings() throws Exception {
+        when(bookingService.getByBooker(1, "ALL")).thenReturn(List.of());
+
+        mockMvc.perform(get("/bookings")
+                        .param("state", "ALL")
+                        .header("X-Sharer-User-Id", 1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void getByBooker_shouldHandleAllStates() throws Exception {
+        String[] states = {"ALL", "CURRENT", "PAST", "FUTURE", "WAITING", "REJECTED"};
+
+        for (String state : states) {
+            when(bookingService.getByBooker(1, state)).thenReturn(List.of(responseDto));
+            mockMvc.perform(get("/bookings")
+                            .param("state", state)
+                            .header("X-Sharer-User-Id", 1))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    void getByOwner_shouldReturnEmptyList_whenNoBookings() throws Exception {
+        when(bookingService.getByOwner(1, "ALL")).thenReturn(List.of());
+
+        mockMvc.perform(get("/bookings/owner")
+                        .param("state", "ALL")
+                        .header("X-Sharer-User-Id", 1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void getByOwner_shouldHandleAllStates() throws Exception {
+        String[] states = {"ALL", "CURRENT", "PAST", "FUTURE", "WAITING", "REJECTED"};
+
+        for (String state : states) {
+            when(bookingService.getByOwner(1, state)).thenReturn(List.of(responseDto));
+            mockMvc.perform(get("/bookings/owner")
+                            .param("state", state)
+                            .header("X-Sharer-User-Id", 1))
+                    .andExpect(status().isOk());
+        }
     }
 }

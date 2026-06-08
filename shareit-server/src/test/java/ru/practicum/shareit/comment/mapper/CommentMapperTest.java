@@ -55,6 +55,31 @@ class CommentMapperTest {
     }
 
     @Test
+    void toComment_shouldSetCurrentTime() {
+        LocalDateTime before = LocalDateTime.now();
+        Comment result = CommentMapper.toComment(createDto, item, author);
+        LocalDateTime after = LocalDateTime.now();
+
+        assertThat(result.getCreated()).isBetween(before, after);
+    }
+
+    @Test
+    void toComment_shouldHandleNullText() {
+        createDto.setText(null);
+        Comment result = CommentMapper.toComment(createDto, item, author);
+
+        assertThat(result.getText()).isNull();
+    }
+
+    @Test
+    void toComment_shouldHandleEmptyText() {
+        createDto.setText("");
+        Comment result = CommentMapper.toComment(createDto, item, author);
+
+        assertThat(result.getText()).isEmpty();
+    }
+
+    @Test
     void toCommentDto_shouldMapCorrectly() {
         CommentDto result = CommentMapper.toCommentDto(comment);
 
@@ -69,5 +94,30 @@ class CommentMapperTest {
     void toCommentDto_shouldReturnNull_whenCommentIsNull() {
         CommentDto result = CommentMapper.toCommentDto(null);
         assertThat(result).isNull();
+    }
+
+    @Test
+    void toCommentDto_shouldHandleCommentWithNullItem() {
+        comment.setItem(null);
+        CommentDto result = CommentMapper.toCommentDto(comment);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(1);
+        assertThat(result.getText()).isEqualTo("Great item!");
+    }
+
+    @Test
+    void bidirectionalMapping_shouldBeConsistent() {
+        Comment newComment = CommentMapper.toComment(createDto, item, author);
+        CommentDto mappedDto = CommentMapper.toCommentDto(newComment);
+        Comment mappedComment = CommentMapper.toComment(
+                new CommentCreateDto() {{
+                    setText(mappedDto.getText());
+                }},
+                item,
+                author
+        );
+
+        assertThat(mappedComment.getText()).isEqualTo(newComment.getText());
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.service.ItemRequestService;
@@ -64,6 +65,20 @@ class ItemRequestControllerTest {
     }
 
     @Test
+    void create_shouldReturnNotFound_whenUserDoesNotExist() throws Exception {
+        when(requestService.create(any(ItemRequestCreateDto.class), eq(999)))
+                .thenThrow(new NotFoundException("Пользователь не найден"));
+
+        mockMvc.perform(post("/requests")
+                        .header("X-Sharer-User-Id", 999)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createDto)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.message").value("Пользователь не найден"));
+    }
+
+    @Test
     void getByUser_shouldReturnRequests() throws Exception {
         when(requestService.getByUser(1)).thenReturn(List.of(responseDto));
 
@@ -71,6 +86,25 @@ class ItemRequestControllerTest {
                         .header("X-Sharer-User-Id", 1))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1));
+    }
+
+    @Test
+    void getByUser_shouldReturnEmptyList_whenNoRequests() throws Exception {
+        when(requestService.getByUser(1)).thenReturn(List.of());
+
+        mockMvc.perform(get("/requests")
+                        .header("X-Sharer-User-Id", 1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void getByUser_shouldReturnNotFound_whenUserDoesNotExist() throws Exception {
+        when(requestService.getByUser(999)).thenThrow(new NotFoundException("Пользователь не найден"));
+
+        mockMvc.perform(get("/requests")
+                        .header("X-Sharer-User-Id", 999))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -84,6 +118,25 @@ class ItemRequestControllerTest {
     }
 
     @Test
+    void getAllOther_shouldReturnEmptyList_whenNoOtherRequests() throws Exception {
+        when(requestService.getAllOther(1)).thenReturn(List.of());
+
+        mockMvc.perform(get("/requests/all")
+                        .header("X-Sharer-User-Id", 1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void getAllOther_shouldReturnNotFound_whenUserDoesNotExist() throws Exception {
+        when(requestService.getAllOther(999)).thenThrow(new NotFoundException("Пользователь не найден"));
+
+        mockMvc.perform(get("/requests/all")
+                        .header("X-Sharer-User-Id", 999))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void getById_shouldReturnRequest() throws Exception {
         when(requestService.getById(1, 1)).thenReturn(responseDto);
 
@@ -91,5 +144,25 @@ class ItemRequestControllerTest {
                         .header("X-Sharer-User-Id", 1))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1));
+    }
+
+    @Test
+    void getById_shouldReturnNotFound_whenRequestDoesNotExist() throws Exception {
+        when(requestService.getById(999, 1)).thenThrow(new NotFoundException("Запрос не найден"));
+
+        mockMvc.perform(get("/requests/999")
+                        .header("X-Sharer-User-Id", 1))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.message").value("Запрос не найден"));
+    }
+
+    @Test
+    void getById_shouldReturnNotFound_whenUserDoesNotExist() throws Exception {
+        when(requestService.getById(1, 999)).thenThrow(new NotFoundException("Пользователь не найден"));
+
+        mockMvc.perform(get("/requests/1")
+                        .header("X-Sharer-User-Id", 999))
+                .andExpect(status().isNotFound());
     }
 }

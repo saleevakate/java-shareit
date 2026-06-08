@@ -79,5 +79,4 @@ class BookingRequestDtoTest {
         Set<ConstraintViolation<BookingRequestDto>> violations = validator.validate(requestDto);
         assertThat(violations).isEmpty();
     }
-
 }

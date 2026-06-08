@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.comment.dto.CommentCreateDto;
 import ru.practicum.shareit.comment.dto.CommentDto;
+import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemWithBookingsDto;
 import ru.practicum.shareit.item.service.ItemService;
@@ -20,8 +21,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -115,5 +115,77 @@ class ItemControllerTest {
                         .content(objectMapper.writeValueAsString(createDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.text").value("Great item!"));
+    }
+
+    @Test
+    void update_shouldReturnUpdatedItem() throws Exception {
+        ItemDto updateDto = new ItemDto();
+        updateDto.setName("Updated Drill");
+
+        when(itemService.update(eq(1), any(ItemDto.class), eq(1))).thenReturn(itemDto);
+
+        mockMvc.perform(patch("/items/1")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1));
+    }
+
+    @Test
+    void update_shouldReturnNotFound_whenItemDoesNotExist() throws Exception {
+        when(itemService.update(eq(999), any(ItemDto.class), eq(1)))
+                .thenThrow(new NotFoundException("Вещь не найдена"));
+
+        mockMvc.perform(patch("/items/999")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemDto)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getById_shouldReturnNotFound_whenItemDoesNotExist() throws Exception {
+        when(itemService.getById(999, 1)).thenThrow(new NotFoundException("Вещь не найдена"));
+
+        mockMvc.perform(get("/items/999")
+                        .header("X-Sharer-User-Id", 1))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getByOwner_shouldReturnEmptyList_whenUserHasNoItems() throws Exception {
+        when(itemService.getByOwner(1)).thenReturn(List.of());
+
+        mockMvc.perform(get("/items")
+                        .header("X-Sharer-User-Id", 1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void search_shouldReturnEmptyList_whenTextIsBlank() throws Exception {
+        when(itemService.search("", 1)).thenReturn(List.of());
+
+        mockMvc.perform(get("/items/search")
+                        .param("text", "")
+                        .header("X-Sharer-User-Id", 1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void addComment_shouldReturnNotFound_whenItemDoesNotExist() throws Exception {
+        CommentCreateDto createDto = new CommentCreateDto();
+        createDto.setText("Great item!");
+
+        when(itemService.addComment(eq(999), any(CommentCreateDto.class), eq(2)))
+                .thenThrow(new NotFoundException("Вещь не найдена"));
+
+        mockMvc.perform(post("/items/999/comment")
+                        .header("X-Sharer-User-Id", 2)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createDto)))
+                .andExpect(status().isNotFound());
     }
 }

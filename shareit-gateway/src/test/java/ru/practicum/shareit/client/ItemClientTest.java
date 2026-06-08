@@ -11,9 +11,9 @@ import ru.practicum.shareit.comment.dto.CommentCreateDto;
 import ru.practicum.shareit.item.client.ItemClient;
 import ru.practicum.shareit.item.dto.ItemDto;
 
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class ItemClientTest {
 
