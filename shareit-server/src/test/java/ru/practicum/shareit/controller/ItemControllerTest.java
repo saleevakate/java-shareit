@@ -78,6 +78,7 @@ class ItemControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1));
     }
+
     @Test
     void getByOwner_shouldReturnItems() throws Exception {
         ItemWithBookingsDto itemWithBookingsDto = new ItemWithBookingsDto(itemDto);
