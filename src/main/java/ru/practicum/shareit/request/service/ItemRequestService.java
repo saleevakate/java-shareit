@@ -11,6 +11,6 @@ public interface ItemRequestService {
     List<ItemRequestDto> getByUser(Integer userId);
 
     List<ItemRequestDto> getAllOther(Integer userId);
-    
+
     ItemRequestDto getById(Integer requestId, Integer userId);
 }

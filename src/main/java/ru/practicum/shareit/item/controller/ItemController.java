@@ -43,7 +43,7 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemWithBookingsDto> getByOwner(@RequestHeader("X-Sharer-User-Id") int userId) {
+    public List<ItemDto> getByOwner(@RequestHeader("X-Sharer-User-Id") int userId) {
         log.info("GET /items - список вещей владельца, userId={}", userId);
         return itemService.getByOwner(userId);
     }
