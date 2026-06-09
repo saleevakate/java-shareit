@@ -17,7 +17,6 @@ public class BookingClient extends BaseClient {
                          RestTemplateBuilder builder) {
         super(builder.build());
         this.baseUrl = serverUrl + API_PREFIX;
-        System.out.println("DEBUG: BookingClient using baseUrl = " + baseUrl);
     }
 
     public ResponseEntity<Object> create(BookingRequestDto request, int userId) {
